@@ -26,9 +26,7 @@ export function AuthProvider({ children }) {
         const currentTime = Date.now() / 1000;
         if (decodedToken.exp < currentTime) {
           // Token expired
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          toast.error("Session expired. Please log in again.");
+          handleTokenExpiration();
         } else {
           // Valid token
           setToken(storedToken);
@@ -39,12 +37,20 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         console.error("Failed to parse stored token:", error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        handleTokenExpiration();
       }
     }
     setLoading(false);
   }, []);
+
+  // Handle token expiration
+  const handleTokenExpiration = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setCurrentUser(null);
+    setToken(null);
+    toast.error("Session expired. Please log in again.");
+  };
 
   // Register function
   async function register(userData, userType = 'buyer') {
@@ -102,13 +108,16 @@ export function AuthProvider({ children }) {
           id: 'buyer-001',
           name: 'Demo Buyer',
           email: 'buyer@example.com',
-          userType: 'buyer'
+          userType: 'buyer',
+          profileImage: 'https://source.unsplash.com/random/200x200/?portrait'
         },
         seller: {
           id: 'seller-001',
           name: 'Demo Seller',
           email: 'seller@example.com',
-          userType: 'seller'
+          userType: 'seller',
+          company: 'Demo Store',
+          profileImage: 'https://source.unsplash.com/random/200x200/?business'
         }
       };
       
@@ -149,6 +158,29 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Update user profile
+  async function updateProfile(updatedData) {
+    try {
+      const updatedUser = {
+        ...currentUser,
+        ...updatedData,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // In a real app, this would be an API call
+      // For now, we'll just update local storage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setCurrentUser(updatedUser);
+      
+      toast.success("Profile updated successfully");
+      return updatedUser;
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast.error("Failed to update profile");
+      throw error;
+    }
+  }
+
   // Logout function
   function logout() {
     localStorage.removeItem('token');
@@ -158,6 +190,27 @@ export function AuthProvider({ children }) {
     toast.info("Logged out successfully");
   }
 
+  // Check token validity on interval
+  useEffect(() => {
+    // Check token every 5 minutes
+    const tokenCheckInterval = setInterval(() => {
+      const storedToken = localStorage.getItem('token');
+      if (storedToken) {
+        try {
+          const decodedToken = jwtDecode(storedToken);
+          const currentTime = Date.now() / 1000;
+          if (decodedToken.exp < currentTime) {
+            handleTokenExpiration();
+          }
+        } catch (error) {
+          handleTokenExpiration();
+        }
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(tokenCheckInterval);
+  }, []);
+
   const value = {
     currentUser,
     token,
@@ -165,6 +218,7 @@ export function AuthProvider({ children }) {
     register,
     login,
     logout,
+    updateProfile,
     isAuthenticated: !!currentUser,
     isSeller: currentUser?.userType === 'seller',
     isBuyer: currentUser?.userType === 'buyer'

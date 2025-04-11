@@ -6,11 +6,11 @@ import { toast } from 'sonner';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, userType } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('buyer');
+  const [loginType, setLoginType] = useState('buyer');
   const [loading, setLoading] = useState(false);
   
   // Redirect if already authenticated
@@ -35,8 +35,8 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const user = await login(email, password, userType);
-      toast.success(`Welcome back!`);
+      const user = await login(email, password, loginType);
+      toast.success(`Welcome back, ${user.name}!`);
       
       // Redirect based on user type
       if (user.userType === 'seller') {
@@ -78,17 +78,17 @@ const Login = () => {
           {/* User type selector */}
           <div className="flex border-b mb-6">
             <button 
-              onClick={() => setUserType('buyer')}
+              onClick={() => setLoginType('buyer')}
               className={`py-2 px-4 border-b-2 ${
-                userType === 'buyer' ? 'border-exclusive-red text-exclusive-red' : 'border-transparent'
+                loginType === 'buyer' ? 'border-exclusive-red text-exclusive-red' : 'border-transparent'
               }`}
             >
               Customer
             </button>
             <button 
-              onClick={() => setUserType('seller')}
+              onClick={() => setLoginType('seller')}
               className={`py-2 px-4 border-b-2 ${
-                userType === 'seller' ? 'border-exclusive-red text-exclusive-red' : 'border-transparent'
+                loginType === 'seller' ? 'border-exclusive-red text-exclusive-red' : 'border-transparent'
               }`}
             >
               Seller

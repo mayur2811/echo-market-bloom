@@ -29,6 +29,8 @@ import NotFound from "./pages/NotFound";
 import SellerDashboard from "./pages/seller/Dashboard";
 import ProductManagement from "./pages/seller/ProductManagement";
 import ProductForm from "./pages/seller/ProductForm";
+import SellerProfile from "./pages/seller/SellerProfile";
+import PaymentManagement from "./pages/seller/PaymentManagement";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +61,8 @@ const App = () => (
                   <Route path="products" element={<ProductManagement />} />
                   <Route path="products/new" element={<ProductForm />} />
                   <Route path="products/edit/:id" element={<ProductForm />} />
+                  <Route path="profile" element={<SellerProfile />} />
+                  <Route path="payments" element={<PaymentManagement />} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />
