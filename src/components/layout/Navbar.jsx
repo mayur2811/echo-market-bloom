@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Heart, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, Package } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 
@@ -19,6 +19,10 @@ const Navbar = () => {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -86,14 +90,35 @@ const Navbar = () => {
             </Link>
             {isAuthenticated ? (
               <div className="relative group">
-                <button className="hover:text-exclusive-red">
+                <button className="hover:text-exclusive-red flex items-center space-x-1">
                   <User size={24} />
+                  {currentUser && (
+                    <span className="hidden md:block text-sm">{currentUser.name}</span>
+                  )}
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg overflow-hidden z-20 hidden group-hover:block">
                   <div className="py-1">
-                    <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</Link>
-                    <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Orders</Link>
-                    <button onClick={logout} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                    <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <div className="flex items-center">
+                        <User size={16} className="mr-2" />
+                        <span>My Profile</span>
+                      </div>
+                    </Link>
+                    <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <div className="flex items-center">
+                        <Package size={16} className="mr-2" />
+                        <span>My Orders</span>
+                      </div>
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <div className="flex items-center">
+                        <LogOut size={16} className="mr-2" />
+                        <span>Logout</span>
+                      </div>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -137,10 +162,20 @@ const Navbar = () => {
               )}
               {isAuthenticated ? (
                 <>
-                  <Link to="/profile" className="hover:text-exclusive-red" onClick={() => setIsMobileMenuOpen(false)}>Profile</Link>
-                  <Link to="/orders" className="hover:text-exclusive-red" onClick={() => setIsMobileMenuOpen(false)}>Orders</Link>
-                  <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="text-left hover:text-exclusive-red">
-                    Logout
+                  <Link to="/profile" className="hover:text-exclusive-red flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
+                    <User size={16} className="mr-2" />
+                    <span>My Profile</span>
+                  </Link>
+                  <Link to="/profile" className="hover:text-exclusive-red flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Package size={16} className="mr-2" />
+                    <span>My Orders</span>
+                  </Link>
+                  <button 
+                    onClick={() => { logout(); setIsMobileMenuOpen(false); }} 
+                    className="text-left hover:text-exclusive-red flex items-center"
+                  >
+                    <LogOut size={16} className="mr-2" />
+                    <span>Logout</span>
                   </button>
                 </>
               ) : (

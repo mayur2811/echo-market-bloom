@@ -1,416 +1,275 @@
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
+import { toast } from "sonner";
 
 const Checkout = () => {
+  const { currentUser } = useAuth();
+  const { cartItems, cartTotal } = useCart();
   const navigate = useNavigate();
-  const { cartItems, getCartTotal, clearCart } = useCart();
-  const { isAuthenticated, currentUser } = useAuth();
   
-  // Form state
-  const [formData, setFormData] = useState({
-    firstName: currentUser?.name?.split(' ')[0] || '',
-    lastName: currentUser?.name?.split(' ')[1] || '',
-    company: '',
-    address: '',
-    apartment: '',
-    city: '',
-    phone: '',
-    email: currentUser?.email || '',
-    notes: '',
-    saveInfo: true,
-    paymentMethod: 'card' // 'card', 'cash'
+  const [shippingDetails, setShippingDetails] = useState({
+    fullName: currentUser?.name || "",
+    email: currentUser?.email || "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "India",
+    phone: ""
   });
   
-  // Coupon state
-  const [couponCode, setCouponCode] = useState('');
-  const [discount, setDiscount] = useState(0);
+  const [errors, setErrors] = useState({});
   
-  // Calculate totals
-  const subtotal = getCartTotal();
-  const shipping = subtotal > 100 ? 0 : 10;
-  const total = subtotal - discount + shipping;
+  if (cartItems.length === 0) {
+    navigate("/cart");
+    return null;
+  }
   
-  // Handle form input change
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
+    const { name, value } = e.target;
+    setShippingDetails({
+      ...shippingDetails,
+      [name]: value
     });
   };
   
-  // Handle payment method change
-  const handlePaymentMethodChange = (method) => {
-    setFormData({
-      ...formData,
-      paymentMethod: method
-    });
-  };
-  
-  // Handle coupon application
-  const handleApplyCoupon = () => {
-    // In a real app, you'd validate the coupon with the backend
-    if (couponCode.trim()) {
-      const discountAmount = Math.min(subtotal * 0.1, 50); // 10% discount, max $50
-      setDiscount(discountAmount);
-      toast.success(`Coupon applied! You saved $${discountAmount.toFixed(2)}`);
-    } else {
-      toast.error('Please enter a valid coupon code');
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!shippingDetails.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
     }
+    
+    if (!shippingDetails.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(shippingDetails.email)) {
+      newErrors.email = "Email is invalid";
+    }
+    
+    if (!shippingDetails.address.trim()) {
+      newErrors.address = "Address is required";
+    }
+    
+    if (!shippingDetails.city.trim()) {
+      newErrors.city = "City is required";
+    }
+    
+    if (!shippingDetails.state.trim()) {
+      newErrors.state = "State is required";
+    }
+    
+    if (!shippingDetails.zipCode.trim()) {
+      newErrors.zipCode = "Zip code is required";
+    }
+    
+    if (!shippingDetails.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
   
-  // Handle checkout submission
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Validate required fields
-    const requiredFields = ['firstName', 'lastName', 'address', 'city', 'phone', 'email'];
-    const emptyFields = requiredFields.filter(field => !formData[field].trim());
-    
-    if (emptyFields.length > 0) {
-      toast.error(`Please fill in all required fields: ${emptyFields.join(', ')}`);
+    if (!validateForm()) {
       return;
     }
     
-    // In a real app, you would:
-    // 1. Send the order to your backend API
-    // 2. Process payment with a payment gateway
-    // 3. Handle order confirmation
-    
-    // For this demo, we'll simulate a successful order
-    setTimeout(() => {
-      toast.success("Order placed successfully!");
-      clearCart();
-      navigate('/order-confirmation');
-    }, 1500);
+    // Proceed to payment
+    navigate("/payment", { state: { orderData: shippingDetails } });
   };
   
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <div className="exclusive-container py-16 text-center">
-        <h2 className="text-2xl font-medium mb-4">Please log in to continue</h2>
-        <p className="mb-8 text-gray-600">You need to be logged in to complete your purchase.</p>
-        <Link to="/login" className="exclusive-btn inline-block">Log In</Link>
-      </div>
-    );
-  }
-  
-  // Redirect to products if cart is empty
-  if (cartItems.length === 0) {
-    return (
-      <div className="exclusive-container py-16 text-center">
-        <h2 className="text-2xl font-medium mb-4">Your cart is empty</h2>
-        <p className="mb-8 text-gray-600">Add some products to your cart before checking out.</p>
-        <Link to="/products" className="exclusive-btn inline-block">Shop Now</Link>
-      </div>
-    );
-  }
-  
   return (
-    <div className="exclusive-container py-8">
-      {/* Breadcrumb */}
-      <nav className="mb-8">
-        <ol className="flex">
-          <li className="flex items-center">
-            <Link to="/" className="text-gray-500 hover:text-exclusive-red">
-              Account
-            </Link>
-            <span className="mx-2 text-gray-400">/</span>
-          </li>
-          <li className="flex items-center">
-            <Link to="/account" className="text-gray-500 hover:text-exclusive-red">
-              My Account
-            </Link>
-            <span className="mx-2 text-gray-400">/</span>
-          </li>
-          <li className="flex items-center">
-            <Link to="/cart" className="text-gray-500 hover:text-exclusive-red">
-              Product
-            </Link>
-            <span className="mx-2 text-gray-400">/</span>
-          </li>
-          <li className="flex items-center">
-            <Link to="/cart" className="text-gray-500 hover:text-exclusive-red">
-              View Cart
-            </Link>
-            <span className="mx-2 text-gray-400">/</span>
-          </li>
-          <li className="text-gray-900">CheckOut</li>
-        </ol>
-      </nav>
-      
-      <h1 className="text-3xl font-medium mb-6">Billing Details</h1>
+    <div className="exclusive-container py-10">
+      <h1 className="text-3xl font-bold mb-8">Checkout</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Billing form */}
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label htmlFor="firstName" className="block mb-2">
-                  First Name*
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  className="exclusive-input"
-                  required
-                />
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold mb-6">Shipping Information</h2>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
+                <div>
+                  <label htmlFor="fullName" className="block text-gray-700 text-sm mb-1">
+                    Full Name*
+                  </label>
+                  <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    className={`exclusive-input ${errors.fullName ? "border-red-500" : ""}`}
+                    value={shippingDetails.fullName}
+                    onChange={handleInputChange}
+                  />
+                  {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="email" className="block text-gray-700 text-sm mb-1">
+                    Email*
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    className={`exclusive-input ${errors.email ? "border-red-500" : ""}`}
+                    value={shippingDetails.email}
+                    onChange={handleInputChange}
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label htmlFor="address" className="block text-gray-700 text-sm mb-1">
+                    Address*
+                  </label>
+                  <input
+                    type="text"
+                    id="address"
+                    name="address"
+                    className={`exclusive-input ${errors.address ? "border-red-500" : ""}`}
+                    value={shippingDetails.address}
+                    onChange={handleInputChange}
+                  />
+                  {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="city" className="block text-gray-700 text-sm mb-1">
+                    City*
+                  </label>
+                  <input
+                    type="text"
+                    id="city"
+                    name="city"
+                    className={`exclusive-input ${errors.city ? "border-red-500" : ""}`}
+                    value={shippingDetails.city}
+                    onChange={handleInputChange}
+                  />
+                  {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="state" className="block text-gray-700 text-sm mb-1">
+                    State/Province*
+                  </label>
+                  <input
+                    type="text"
+                    id="state"
+                    name="state"
+                    className={`exclusive-input ${errors.state ? "border-red-500" : ""}`}
+                    value={shippingDetails.state}
+                    onChange={handleInputChange}
+                  />
+                  {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="zipCode" className="block text-gray-700 text-sm mb-1">
+                    Zip/Postal Code*
+                  </label>
+                  <input
+                    type="text"
+                    id="zipCode"
+                    name="zipCode"
+                    className={`exclusive-input ${errors.zipCode ? "border-red-500" : ""}`}
+                    value={shippingDetails.zipCode}
+                    onChange={handleInputChange}
+                  />
+                  {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="country" className="block text-gray-700 text-sm mb-1">
+                    Country*
+                  </label>
+                  <select
+                    id="country"
+                    name="country"
+                    className="exclusive-input"
+                    value={shippingDetails.country}
+                    onChange={handleInputChange}
+                  >
+                    <option value="India">India</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="phone" className="block text-gray-700 text-sm mb-1">
+                    Phone Number*
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    className={`exclusive-input ${errors.phone ? "border-red-500" : ""}`}
+                    value={shippingDetails.phone}
+                    onChange={handleInputChange}
+                  />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                </div>
               </div>
-              <div>
-                <label htmlFor="lastName" className="block mb-2">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  className="exclusive-input"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="company" className="block mb-2">
-                Company Name (optional)
-              </label>
-              <input
-                type="text"
-                id="company"
-                name="company"
-                value={formData.company}
-                onChange={handleInputChange}
-                className="exclusive-input"
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="address" className="block mb-2">
-                Street Address*
-              </label>
-              <input
-                type="text"
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                className="exclusive-input"
-                required
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="apartment" className="block mb-2">
-                Apartment, floor, etc. (optional)
-              </label>
-              <input
-                type="text"
-                id="apartment"
-                name="apartment"
-                value={formData.apartment}
-                onChange={handleInputChange}
-                className="exclusive-input"
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="city" className="block mb-2">
-                Town/City*
-              </label>
-              <input
-                type="text"
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                className="exclusive-input"
-                required
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="phone" className="block mb-2">
-                Phone Number*
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="exclusive-input"
-                required
-              />
-            </div>
-            
-            <div className="mb-6">
-              <label htmlFor="email" className="block mb-2">
-                Email Address*
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="exclusive-input"
-                required
-              />
-            </div>
-            
-            <div className="mb-6">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="saveInfo"
-                  name="saveInfo"
-                  checked={formData.saveInfo}
-                  onChange={handleInputChange}
-                  className="mr-2"
-                />
-                <label htmlFor="saveInfo">
-                  Save this information for faster check-out next time
-                </label>
-              </div>
-            </div>
-          </form>
+              
+              <button
+                type="submit"
+                className="exclusive-btn w-full mt-8 py-3"
+              >
+                Proceed to Payment
+              </button>
+            </form>
+          </div>
         </div>
         
-        {/* Order summary */}
         <div className="lg:col-span-1">
-          <div className="border rounded-lg p-6">
-            {/* Cart items */}
-            <div className="mb-6">
+          <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
+            <h2 className="text-xl font-bold mb-6">Order Summary</h2>
+            
+            <div className="space-y-4 mb-6">
               {cartItems.map(item => (
-                <div key={item.id} className="flex justify-between items-center mb-4">
-                  <div className="flex items-center">
-                    <div className="relative">
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                      <span className="absolute -top-2 -right-2 bg-exclusive-red text-white w-5 h-5 rounded-full flex items-center justify-center text-xs">
-                        {item.quantity}
-                      </span>
-                    </div>
-                    <span className="ml-3 text-sm">{item.name}</span>
+                <div key={`${item.id}-${item.selectedSize || 'default'}`} className="flex items-center">
+                  <div className="bg-gray-100 rounded w-16 h-16 flex items-center justify-center overflow-hidden mr-4">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="object-cover w-full h-full"
+                    />
                   </div>
-                  <span className="font-medium">${(item.discountPrice * item.quantity).toFixed(2)}</span>
+                  <div className="flex-grow">
+                    <h3 className="text-sm font-medium leading-tight">{item.name}</h3>
+                    <p className="text-gray-500 text-xs">
+                      Qty: {item.quantity}
+                      {item.selectedSize && ` | Size: ${item.selectedSize}`}
+                    </p>
+                  </div>
+                  <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
             </div>
             
-            {/* Totals */}
-            <div className="space-y-3 border-t border-b py-4 mb-6">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
-                <span className="font-medium">${subtotal.toFixed(2)}</span>
+            <div className="border-t pt-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium">${cartTotal.toFixed(2)}</span>
               </div>
-              {discount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount:</span>
-                  <span>-${discount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>Shipping:</span>
-                <span>
-                  {shipping === 0 ? (
-                    <span className="text-green-600">Free</span>
-                  ) : (
-                    `$${shipping.toFixed(2)}`
-                  )}
-                </span>
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Shipping</span>
+                <span className="font-medium">Free</span>
+              </div>
+              <div className="flex justify-between border-t border-dashed pt-4 mt-4">
+                <span className="font-bold">Total</span>
+                <span className="font-bold">${cartTotal.toFixed(2)}</span>
               </div>
             </div>
-            
-            <div className="flex justify-between mb-6">
-              <span className="font-bold">Total:</span>
-              <span className="font-bold text-xl">${total.toFixed(2)}</span>
-            </div>
-            
-            {/* Payment methods */}
-            <div className="mb-6">
-              <div className="mb-4">
-                <h3 className="text-lg font-medium mb-2">Payment Method</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="bank"
-                      name="paymentMethod"
-                      value="bank"
-                      checked={formData.paymentMethod === 'bank'}
-                      onChange={() => handlePaymentMethodChange('bank')}
-                      className="mr-2"
-                    />
-                    <label htmlFor="bank" className="flex items-center">
-                      <span className="mr-2">Bank</span>
-                      <div className="flex space-x-1">
-                        <img src="https://cdn-icons-png.flaticon.com/512/5968/5968299.png" alt="Bank" className="h-6" />
-                        <img src="https://logowik.com/content/uploads/images/visa-payment-card1873.jpg" alt="Visa" className="h-6" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/2560px-Mastercard-logo.svg.png" alt="Mastercard" className="h-6" />
-                      </div>
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <input
-                      type="radio"
-                      id="cash"
-                      name="paymentMethod"
-                      value="cash"
-                      checked={formData.paymentMethod === 'cash'}
-                      onChange={() => handlePaymentMethodChange('cash')}
-                      className="mr-2"
-                    />
-                    <label htmlFor="cash">
-                      Cash on delivery
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Coupon */}
-            <div className="mb-6">
-              <div className="flex">
-                <input
-                  type="text"
-                  className="exclusive-input rounded-r-none"
-                  placeholder="Coupon Code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
-                />
-                <button 
-                  type="button"
-                  className="bg-exclusive-red text-white px-4 py-2 rounded-r hover:bg-exclusive-darkRed transition-colors"
-                  onClick={handleApplyCoupon}
-                >
-                  Apply 
-                </button>
-              </div>
-            </div>
-            
-            <button 
-              type="submit"
-              onClick={handleSubmit}
-              className="w-full exclusive-btn text-center block"
-            >
-              Place Order
-            </button>
           </div>
         </div>
       </div>
