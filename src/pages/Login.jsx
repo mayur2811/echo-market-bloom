@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -46,7 +45,7 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Failed to log in. Please check your credentials and try again.');
+      // Toast is already displayed by the AuthContext
     } finally {
       setLoading(false);
     }
@@ -135,9 +134,8 @@ const Login = () => {
           
           {/* Demo account info */}
           <div className="bg-gray-50 p-4 rounded-md mb-6">
-            <p className="text-sm text-gray-600 mb-1">Demo Accounts:</p>
-            <p className="text-sm">👤 Customer: buyer@example.com / password</p>
-            <p className="text-sm">🏪 Seller: seller@example.com / password</p>
+            <p className="text-sm text-gray-600 mb-1">API Connection:</p>
+            <p className="text-xs text-gray-600">Connecting to: {import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}</p>
           </div>
           
           <div className="text-center">

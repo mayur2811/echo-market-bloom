@@ -32,7 +32,18 @@ import ProductForm from "./pages/seller/ProductForm";
 import SellerProfile from "./pages/seller/SellerProfile";
 import PaymentManagement from "./pages/seller/PaymentManagement";
 
-const queryClient = new QueryClient();
+// Configure global API URL
+// The API URL can be configured via environment variable in production
+window.API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    }
+  }
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

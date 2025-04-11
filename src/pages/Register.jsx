@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -64,7 +63,7 @@ const Register = () => {
       }
     } catch (error) {
       console.error('Registration error:', error);
-      toast.error('Failed to register. Please try again.');
+      // Error is already handled by AuthContext
     } finally {
       setLoading(false);
     }

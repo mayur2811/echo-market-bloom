@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from "sonner";
-import { jwtDecode } from "jwt-decode";
+import AuthService from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -19,21 +19,16 @@ export function AuthProvider({ children }) {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       try {
-        // Verify token and extract user data
-        const decodedToken = jwtDecode(storedToken);
-        
-        // Check if token is expired
-        const currentTime = Date.now() / 1000;
-        if (decodedToken.exp < currentTime) {
+        // Verify token validity
+        if (AuthService.isTokenValid(storedToken)) {
+          setToken(storedToken);
+          const user = AuthService.getUserFromLocalStorage();
+          if (user) {
+            setCurrentUser(user);
+          }
+        } else {
           // Token expired
           handleTokenExpiration();
-        } else {
-          // Valid token
-          setToken(storedToken);
-          const storedUser = localStorage.getItem('user');
-          if (storedUser) {
-            setCurrentUser(JSON.parse(storedUser));
-          }
         }
       } catch (error) {
         console.error("Failed to parse stored token:", error);
@@ -46,6 +41,7 @@ export function AuthProvider({ children }) {
   // Handle token expiration
   const handleTokenExpiration = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setCurrentUser(null);
     setToken(null);
@@ -55,43 +51,14 @@ export function AuthProvider({ children }) {
   // Register function
   async function register(userData, userType = 'buyer') {
     try {
-      // In a real app, we would use API call to register
-      // For now, we'll simulate it with proper JWT structure
-      const newUser = {
-        ...userData,
-        id: Math.random().toString(36).substr(2, 9),
-        userType,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Create a proper JWT token structure
-      const tokenPayload = {
-        sub: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        userType: newUser.userType,
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 24 hours
-      };
-      
-      // In a real app, the token would be created by the server
-      // This is just a simulation
-      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-      const payload = btoa(JSON.stringify(tokenPayload));
-      const signature = btoa("secret_signature_key"); // In a real app this would be encrypted
-      const mockToken = `${header}.${payload}.${signature}`;
-      
-      // Store in localStorage
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(newUser));
-      
-      setToken(mockToken);
+      const newUser = await AuthService.register(userData, userType);
       setCurrentUser(newUser);
+      setToken(localStorage.getItem('token'));
       toast.success(`Successfully registered as ${userType}`);
       return newUser;
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("Registration failed");
+      toast.error(error.message || "Registration failed");
       throw error;
     }
   }
@@ -99,61 +66,14 @@ export function AuthProvider({ children }) {
   // Login function
   async function login(email, password, userType = 'buyer') {
     try {
-      // In a real app, we would verify credentials with an API
-      // For this demo, we'll just pretend it's successful
-      
-      // Demo users
-      const demoUsers = {
-        buyer: {
-          id: 'buyer-001',
-          name: 'Demo Buyer',
-          email: 'buyer@example.com',
-          userType: 'buyer',
-          profileImage: 'https://source.unsplash.com/random/200x200/?portrait'
-        },
-        seller: {
-          id: 'seller-001',
-          name: 'Demo Seller',
-          email: 'seller@example.com',
-          userType: 'seller',
-          company: 'Demo Store',
-          profileImage: 'https://source.unsplash.com/random/200x200/?business'
-        }
-      };
-      
-      // Simulate login with demo user based on userType
-      const user = demoUsers[userType];
-      
-      if (!user) {
-        throw new Error("Invalid credentials");
-      }
-      
-      // Create a proper JWT token structure
-      const tokenPayload = {
-        sub: user.id,
-        name: user.name,
-        email: user.email,
-        userType: user.userType,
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 24 hours
-      };
-      
-      // Create a more realistic JWT token
-      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-      const payload = btoa(JSON.stringify(tokenPayload));
-      const signature = btoa("secret_signature_key"); // In a real app this would be encrypted
-      const mockToken = `${header}.${payload}.${signature}`;
-      
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      setToken(mockToken);
+      const user = await AuthService.login(email, password, userType);
       setCurrentUser(user);
+      setToken(localStorage.getItem('token'));
       toast.success(`Logged in as ${user.name}`);
       return user;
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed");
+      toast.error(error.message || "Login failed");
       throw error;
     }
   }
@@ -161,30 +81,21 @@ export function AuthProvider({ children }) {
   // Update user profile
   async function updateProfile(updatedData) {
     try {
-      const updatedUser = {
-        ...currentUser,
-        ...updatedData,
-        updatedAt: new Date().toISOString()
-      };
-      
-      // In a real app, this would be an API call
-      // For now, we'll just update local storage
+      const updatedUser = await AuthService.updateProfile(updatedData);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setCurrentUser(updatedUser);
-      
       toast.success("Profile updated successfully");
       return updatedUser;
     } catch (error) {
       console.error("Profile update error:", error);
-      toast.error("Failed to update profile");
+      toast.error(error.message || "Failed to update profile");
       throw error;
     }
   }
 
   // Logout function
-  function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  async function logout() {
+    await AuthService.logout();
     setCurrentUser(null);
     setToken(null);
     toast.info("Logged out successfully");
@@ -192,19 +103,10 @@ export function AuthProvider({ children }) {
 
   // Check token validity on interval
   useEffect(() => {
-    // Check token every 5 minutes
     const tokenCheckInterval = setInterval(() => {
       const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        try {
-          const decodedToken = jwtDecode(storedToken);
-          const currentTime = Date.now() / 1000;
-          if (decodedToken.exp < currentTime) {
-            handleTokenExpiration();
-          }
-        } catch (error) {
-          handleTokenExpiration();
-        }
+      if (storedToken && !AuthService.isTokenValid(storedToken)) {
+        handleTokenExpiration();
       }
     }, 5 * 60 * 1000); // 5 minutes
     
