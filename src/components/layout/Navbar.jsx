@@ -1,14 +1,15 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, Package } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, ShoppingCart, Heart, User, Menu, X, LogOut, Package, BarChart2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isAuthenticated, currentUser, logout } = useAuth();
+  const { isAuthenticated, currentUser, logout, isSeller } = useAuth();
   const { cartCount } = useCart();
 
   const handleSearch = (e) => {
@@ -23,6 +24,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
+    navigate('/');
   };
 
   return (
@@ -54,7 +56,7 @@ const Navbar = () => {
             <Link to="/products" className="hover:text-exclusive-red">Products</Link>
             <Link to="/about" className="hover:text-exclusive-red">About</Link>
             <Link to="/contact" className="hover:text-exclusive-red">Contact</Link>
-            {isAuthenticated && currentUser?.userType === 'seller' && (
+            {isAuthenticated && isSeller && (
               <Link to="/seller/dashboard" className="hover:text-exclusive-red">Dashboard</Link>
             )}
           </nav>
@@ -104,6 +106,14 @@ const Navbar = () => {
                         <span>My Profile</span>
                       </div>
                     </Link>
+                    {isSeller && (
+                      <Link to="/seller/dashboard" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <div className="flex items-center">
+                          <BarChart2 size={16} className="mr-2" />
+                          <span>Seller Dashboard</span>
+                        </div>
+                      </Link>
+                    )}
                     <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       <div className="flex items-center">
                         <Package size={16} className="mr-2" />
@@ -157,8 +167,13 @@ const Navbar = () => {
               <Link to="/products" className="hover:text-exclusive-red" onClick={() => setIsMobileMenuOpen(false)}>Products</Link>
               <Link to="/about" className="hover:text-exclusive-red" onClick={() => setIsMobileMenuOpen(false)}>About</Link>
               <Link to="/contact" className="hover:text-exclusive-red" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link>
-              {isAuthenticated && currentUser?.userType === 'seller' && (
-                <Link to="/seller/dashboard" className="hover:text-exclusive-red" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link>
+              {isAuthenticated && isSeller && (
+                <Link to="/seller/dashboard" className="hover:text-exclusive-red font-semibold text-exclusive-red" onClick={() => setIsMobileMenuOpen(false)}>
+                  <div className="flex items-center">
+                    <BarChart2 size={16} className="mr-2" />
+                    <span>Seller Dashboard</span>
+                  </div>
+                </Link>
               )}
               {isAuthenticated ? (
                 <>
@@ -171,7 +186,7 @@ const Navbar = () => {
                     <span>My Orders</span>
                   </Link>
                   <button 
-                    onClick={() => { logout(); setIsMobileMenuOpen(false); }} 
+                    onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} 
                     className="text-left hover:text-exclusive-red flex items-center"
                   >
                     <LogOut size={16} className="mr-2" />

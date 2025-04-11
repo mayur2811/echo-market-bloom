@@ -28,6 +28,7 @@ export function AuthProvider({ children }) {
           // Token expired
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          toast.error("Session expired. Please log in again.");
         } else {
           // Valid token
           setToken(storedToken);
@@ -49,7 +50,7 @@ export function AuthProvider({ children }) {
   async function register(userData, userType = 'buyer') {
     try {
       // In a real app, we would use API call to register
-      // For now, we'll simulate it
+      // For now, we'll simulate it with proper JWT structure
       const newUser = {
         ...userData,
         id: Math.random().toString(36).substr(2, 9),
@@ -57,7 +58,7 @@ export function AuthProvider({ children }) {
         createdAt: new Date().toISOString()
       };
       
-      // Create a mock JWT token
+      // Create a proper JWT token structure
       const tokenPayload = {
         sub: newUser.id,
         name: newUser.name,
@@ -69,7 +70,10 @@ export function AuthProvider({ children }) {
       
       // In a real app, the token would be created by the server
       // This is just a simulation
-      const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify(tokenPayload))}.mockSignature`;
+      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const payload = btoa(JSON.stringify(tokenPayload));
+      const signature = btoa("secret_signature_key"); // In a real app this would be encrypted
+      const mockToken = `${header}.${payload}.${signature}`;
       
       // Store in localStorage
       localStorage.setItem('token', mockToken);
@@ -115,7 +119,7 @@ export function AuthProvider({ children }) {
         throw new Error("Invalid credentials");
       }
       
-      // Create a mock JWT token
+      // Create a proper JWT token structure
       const tokenPayload = {
         sub: user.id,
         name: user.name,
@@ -125,9 +129,11 @@ export function AuthProvider({ children }) {
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 24 hours
       };
       
-      // In a real app, the token would be created by the server
-      // This is just a simulation
-      const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify(tokenPayload))}.mockSignature`;
+      // Create a more realistic JWT token
+      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+      const payload = btoa(JSON.stringify(tokenPayload));
+      const signature = btoa("secret_signature_key"); // In a real app this would be encrypted
+      const mockToken = `${header}.${payload}.${signature}`;
       
       localStorage.setItem('token', mockToken);
       localStorage.setItem('user', JSON.stringify(user));

@@ -1,12 +1,12 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Package, LogOut, Mail, CreditCard } from 'lucide-react';
+import { User, Package, LogOut, Mail, CreditCard, Settings, BarChart2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Profile = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, logout, isSeller } = useAuth();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   
@@ -46,7 +46,41 @@ const Profile = () => {
               </div>
             </div>
             
-            <div className="border-t pt-4">
+            <div className="border-t pt-4 space-y-3">
+              {isSeller && (
+                <Link 
+                  to="/seller/dashboard"
+                  className="flex items-center space-x-2 text-gray-700 hover:text-exclusive-red w-full py-3"
+                >
+                  <BarChart2 size={20} />
+                  <span>Seller Dashboard</span>
+                </Link>
+              )}
+              
+              <Link 
+                to="/profile"
+                className="flex items-center space-x-2 text-gray-700 hover:text-exclusive-red w-full py-3"
+              >
+                <User size={20} />
+                <span>Personal Info</span>
+              </Link>
+              
+              <Link 
+                to="/profile/orders"
+                className="flex items-center space-x-2 text-gray-700 hover:text-exclusive-red w-full py-3"
+              >
+                <Package size={20} />
+                <span>My Orders</span>
+              </Link>
+              
+              <Link 
+                to="/profile/settings"
+                className="flex items-center space-x-2 text-gray-700 hover:text-exclusive-red w-full py-3"
+              >
+                <Settings size={20} />
+                <span>Account Settings</span>
+              </Link>
+              
               <button 
                 onClick={handleLogout}
                 className="flex items-center space-x-2 text-gray-700 hover:text-exclusive-red w-full py-3"
@@ -109,12 +143,22 @@ const Profile = () => {
               </div>
             )}
             
-            <button
-              onClick={() => navigate('/products')}
-              className="exclusive-btn w-full mt-6"
-            >
-              Continue Shopping
-            </button>
+            <div className="mt-6 space-y-4">
+              {isSeller && (
+                <Link
+                  to="/seller/dashboard"
+                  className="exclusive-btn block w-full text-center"
+                >
+                  Go to Seller Dashboard
+                </Link>
+              )}
+              <Link
+                to="/products"
+                className={`${isSeller ? 'border border-exclusive-red text-exclusive-red hover:bg-exclusive-red hover:text-white' : 'exclusive-btn'} block w-full text-center`}
+              >
+                Continue Shopping
+              </Link>
+            </div>
           </div>
         </div>
       </div>

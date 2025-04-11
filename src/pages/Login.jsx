@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
@@ -14,10 +14,15 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (userType === 'seller') {
+        navigate('/seller/dashboard');
+      } else {
+        navigate('/');
+      }
+    }
+  }, [isAuthenticated, navigate, userType]);
   
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -30,11 +35,11 @@ const Login = () => {
     setLoading(true);
     
     try {
-      await login(email, password, userType);
+      const user = await login(email, password, userType);
       toast.success(`Welcome back!`);
       
       // Redirect based on user type
-      if (userType === 'seller') {
+      if (user.userType === 'seller') {
         navigate('/seller/dashboard');
       } else {
         navigate('/');
