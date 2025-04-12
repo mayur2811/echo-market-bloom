@@ -83,8 +83,13 @@ export function CartProvider({ children }) {
 
   // Calculate cart total
   function getCartTotal() {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => {
+      const price = item.discountPrice || item.price || 0;
+      return total + (price * (item.quantity || 1));
+    }, 0);
   }
+
+  const cartTotal = getCartTotal();
 
   const value = {
     cartItems,
@@ -93,7 +98,8 @@ export function CartProvider({ children }) {
     removeFromCart,
     clearCart,
     getCartTotal,
-    cartCount: cartItems.reduce((count, item) => count + item.quantity, 0)
+    cartTotal,
+    cartCount: cartItems.reduce((count, item) => count + (item.quantity || 1), 0)
   };
 
   return (

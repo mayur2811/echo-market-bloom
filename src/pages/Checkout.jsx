@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -7,8 +6,25 @@ import { toast } from "sonner";
 
 const Checkout = () => {
   const { currentUser } = useAuth();
-  const { cartItems, cartTotal } = useCart();
+  const { cartItems } = useCart();
   const navigate = useNavigate();
+  
+  const cartTotal = (() => {
+    try {
+      const { getCartTotal } = useCart();
+      if (typeof getCartTotal === 'function') {
+        return getCartTotal() || 0;
+      }
+      
+      return cartItems.reduce((total, item) => {
+        const price = item.discountPrice || item.price || 0;
+        return total + (price * (item.quantity || 1));
+      }, 0);
+    } catch (err) {
+      console.error("Error calculating cart total:", err);
+      return 0;
+    }
+  })();
   
   const [shippingDetails, setShippingDetails] = useState({
     fullName: currentUser?.name || "",
@@ -80,7 +96,6 @@ const Checkout = () => {
       return;
     }
     
-    // Proceed to payment
     navigate("/payment", { state: { orderData: shippingDetails } });
   };
   
@@ -239,7 +254,7 @@ const Checkout = () => {
                 <div key={`${item.id}-${item.selectedSize || 'default'}`} className="flex items-center">
                   <div className="bg-gray-100 rounded w-16 h-16 flex items-center justify-center overflow-hidden mr-4">
                     <img
-                      src={item.image}
+                      src={item.image || item.imageUrl}
                       alt={item.name}
                       className="object-cover w-full h-full"
                     />
@@ -251,7 +266,7 @@ const Checkout = () => {
                       {item.selectedSize && ` | Size: ${item.selectedSize}`}
                     </p>
                   </div>
-                  <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-medium">${((item.discountPrice || item.price) * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
             </div>
