@@ -19,18 +19,20 @@ export const API_ENDPOINTS = {
   
   // Product endpoints
   PRODUCTS: {
-    ALL: `${API_BASE_URL}/products`,
+    ALL: `${API_BASE_URL}/products/all`,
+    SEARCH: `${API_BASE_URL}/products/search`,
+    FILTER: `${API_BASE_URL}/products/filter`,
     DETAILS: (id) => `${API_BASE_URL}/products/${id}`,
-    CREATE: `${API_BASE_URL}/products`,
-    UPDATE: (id) => `${API_BASE_URL}/products/${id}`,
-    DELETE: (id) => `${API_BASE_URL}/products/${id}`,
+    CREATE: `${API_BASE_URL}/seller/products/add`,
+    UPDATE: (id) => `${API_BASE_URL}/seller/products/${id}`,
+    DELETE: (id) => `${API_BASE_URL}/seller/products/${id}`,
   },
   
   // Seller endpoints
   SELLER: {
     DASHBOARD: `${API_BASE_URL}/seller/dashboard`,
     PRODUCTS: `${API_BASE_URL}/seller/products`,
-    SALES: `${API_BASE_URL}/seller/sales`,
+    SALES: `${API_BASE_URL}/seller/orders`,
   },
   
   // Cart endpoints
@@ -39,12 +41,32 @@ export const API_ENDPOINTS = {
     ADD: `${API_BASE_URL}/cart/add`,
     UPDATE: `${API_BASE_URL}/cart/update`,
     REMOVE: `${API_BASE_URL}/cart/remove`,
+    CLEAR: `${API_BASE_URL}/cart/clear`,
   },
   
   // Order endpoints
   ORDERS: {
     CREATE: `${API_BASE_URL}/orders`,
-    USER_ORDERS: `${API_BASE_URL}/orders/user`,
+    BUYER_ORDERS: `${API_BASE_URL}/orders/buyer`,
+    SELLER_ORDERS: `${API_BASE_URL}/orders/seller`,
     DETAILS: (id) => `${API_BASE_URL}/orders/${id}`,
+  },
+  
+  // Payment endpoints
+  PAYMENT: {
+    CHECKOUT: `${API_BASE_URL}/payment/checkout`,
+    VERIFY: `${API_BASE_URL}/payment/verify`,
+  },
+  
+  // Notification endpoints
+  NOTIFY: {
+    ORDER: `${API_BASE_URL}/notify/order`,
+  },
+  
+  // Wishlist endpoints
+  WISHLIST: {
+    ITEMS: `${API_BASE_URL}/wishlist`,
+    ADD: `${API_BASE_URL}/wishlist/add`,
+    REMOVE: `${API_BASE_URL}/wishlist/remove`,
   },
 };

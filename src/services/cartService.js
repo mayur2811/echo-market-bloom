@@ -11,16 +11,16 @@ class CartService {
     return ApiService.post(API_ENDPOINTS.CART.ADD, { productId, quantity });
   }
   
-  static async updateCartItem(itemId, quantity) {
-    return ApiService.put(API_ENDPOINTS.CART.UPDATE, { itemId, quantity });
+  static async updateCartItem(productId, quantity) {
+    return ApiService.put(API_ENDPOINTS.CART.UPDATE, { productId, quantity });
   }
   
-  static async removeFromCart(itemId) {
-    return ApiService.delete(`${API_ENDPOINTS.CART.REMOVE}/${itemId}`);
+  static async removeFromCart(productId) {
+    return ApiService.delete(`${API_ENDPOINTS.CART.REMOVE}/${productId}`);
   }
   
   static async clearCart() {
-    return ApiService.delete(API_ENDPOINTS.CART.ITEMS);
+    return ApiService.delete(API_ENDPOINTS.CART.CLEAR);
   }
 }
 

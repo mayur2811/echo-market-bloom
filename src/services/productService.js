@@ -9,6 +9,15 @@ class ProductService {
     return ApiService.get(url);
   }
   
+  static async searchProducts(query) {
+    return ApiService.get(`${API_ENDPOINTS.PRODUCTS.SEARCH}?name=${encodeURIComponent(query)}`);
+  }
+  
+  static async filterProducts(filterParams) {
+    const queryParams = new URLSearchParams(filterParams).toString();
+    return ApiService.get(`${API_ENDPOINTS.PRODUCTS.FILTER}?${queryParams}`);
+  }
+  
   static async getProductById(id) {
     return ApiService.get(API_ENDPOINTS.PRODUCTS.DETAILS(id));
   }
