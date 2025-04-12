@@ -11,4 +11,5 @@ public interface UserService {
     boolean existsByEmail(String email);
     UserDto updateProfile(Long userId, UserDto userDto);
     UserDto getCurrentUserProfile();
+    User saveUser(User user);
 }
