@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -6,19 +7,22 @@ import { toast } from "sonner";
 
 const Checkout = () => {
   const { currentUser } = useAuth();
-  const { cartItems } = useCart();
+  const { cartItems, getCartTotal } = useCart();
   const navigate = useNavigate();
   
+  // Safely calculate cart total with fallback
   const cartTotal = (() => {
     try {
-      const { getCartTotal } = useCart();
+      // First try using the getCartTotal function if available
       if (typeof getCartTotal === 'function') {
         return getCartTotal() || 0;
       }
       
+      // Fallback calculation if getCartTotal is not available
       return cartItems.reduce((total, item) => {
-        const price = item.discountPrice || item.price || 0;
-        return total + (price * (item.quantity || 1));
+        const price = parseFloat(item.discountPrice || item.price || 0);
+        const quantity = parseInt(item.quantity || 1, 10);
+        return total + (price * quantity);
       }, 0);
     } catch (err) {
       console.error("Error calculating cart total:", err);
@@ -250,25 +254,36 @@ const Checkout = () => {
             <h2 className="text-xl font-bold mb-6">Order Summary</h2>
             
             <div className="space-y-4 mb-6">
-              {cartItems.map(item => (
-                <div key={`${item.id}-${item.selectedSize || 'default'}`} className="flex items-center">
-                  <div className="bg-gray-100 rounded w-16 h-16 flex items-center justify-center overflow-hidden mr-4">
-                    <img
-                      src={item.image || item.imageUrl}
-                      alt={item.name}
-                      className="object-cover w-full h-full"
-                    />
+              {cartItems.map(item => {
+                // Make sure we have valid price and quantity
+                const price = parseFloat(item.discountPrice || item.price || 0);
+                const quantity = parseInt(item.quantity || 1, 10);
+                const itemTotal = price * quantity;
+                
+                return (
+                  <div key={`${item.id}-${item.selectedSize || 'default'}`} className="flex items-center">
+                    <div className="bg-gray-100 rounded w-16 h-16 flex items-center justify-center overflow-hidden mr-4">
+                      <img
+                        src={item.image || item.imageUrl || '/placeholder.svg'}
+                        alt={item.name}
+                        className="object-cover w-full h-full"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/placeholder.svg';
+                        }}
+                      />
+                    </div>
+                    <div className="flex-grow">
+                      <h3 className="text-sm font-medium leading-tight">{item.name}</h3>
+                      <p className="text-gray-500 text-xs">
+                        Qty: {quantity}
+                        {item.selectedSize && ` | Size: ${item.selectedSize}`}
+                      </p>
+                    </div>
+                    <p className="font-medium">${itemTotal.toFixed(2)}</p>
                   </div>
-                  <div className="flex-grow">
-                    <h3 className="text-sm font-medium leading-tight">{item.name}</h3>
-                    <p className="text-gray-500 text-xs">
-                      Qty: {item.quantity}
-                      {item.selectedSize && ` | Size: ${item.selectedSize}`}
-                    </p>
-                  </div>
-                  <p className="font-medium">${((item.discountPrice || item.price) * item.quantity).toFixed(2)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             <div className="border-t pt-4">

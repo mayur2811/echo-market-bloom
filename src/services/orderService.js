@@ -8,11 +8,19 @@ class OrderService {
   }
   
   static async getUserOrders() {
-    return ApiService.get(API_ENDPOINTS.ORDERS.USER_ORDERS);
+    return ApiService.get(API_ENDPOINTS.ORDERS.BUYER_ORDERS);
   }
   
   static async getOrderDetails(orderId) {
     return ApiService.get(API_ENDPOINTS.ORDERS.DETAILS(orderId));
+  }
+  
+  static async getSellerOrders() {
+    return ApiService.get(API_ENDPOINTS.ORDERS.SELLER_ORDERS);
+  }
+  
+  static async updateOrderStatus(orderId, status) {
+    return ApiService.put(`${API_ENDPOINTS.ORDERS.DETAILS(orderId)}/status`, { status });
   }
 }
 
