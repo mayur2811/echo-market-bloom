@@ -1,14 +1,12 @@
+
 package com.ecommerce.service.impl;
 
 import com.ecommerce.dto.AuthRequest;
 import com.ecommerce.dto.AuthResponse;
 import com.ecommerce.dto.RegisterRequest;
 import com.ecommerce.dto.ResetPasswordRequest;
-import com.ecommerce.entity.PasswordResetToken;
 import com.ecommerce.entity.User;
 import com.ecommerce.exception.BadRequestException;
-import com.ecommerce.exception.ResourceNotFoundException;
-import com.ecommerce.repository.PasswordResetTokenRepository;
 import com.ecommerce.security.JwtTokenProvider;
 import com.ecommerce.security.UserDetailsImpl;
 import com.ecommerce.service.AuthService;
@@ -23,7 +21,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,32 +30,34 @@ import java.util.UUID;
 public class AuthServiceImpl implements AuthService {
     
     private final AuthenticationManager authenticationManager;
-    private final JwtTokenProvider tokenProvider;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
+    private final JwtTokenProvider tokenProvider;
+    private final PasswordEncoder passwordEncoder;
     
     @Override
     public AuthResponse login(AuthRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getEmail(),
+                        loginRequest.getPassword()
+                )
         );
         
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(authentication);
-        
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        
+        String accessToken = tokenProvider.generateToken(authentication);
         User user = userService.findById(userDetails.getId());
         String refreshToken = tokenProvider.generateRefreshToken(user);
         
         return AuthResponse.builder()
-                .token(jwt)
+                .token(accessToken)
                 .refreshToken(refreshToken)
-                .userId(userDetails.getId())
-                .name(userDetails.getName())
-                .email(userDetails.getUsername())
-                .role(userDetails.getRole())
+                .userType(user.getRole().name())
+                .name(user.getName())
+                .email(user.getEmail())
+                .userId(user.getId())
                 .build();
     }
     
@@ -64,26 +65,52 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest registerRequest) {
         if (userService.existsByEmail(registerRequest.getEmail())) {
-            throw new BadRequestException("Email already in use");
+            throw new BadRequestException("Email is already taken");
         }
+        
+        User.Role role = "seller".equalsIgnoreCase(registerRequest.getUserType()) 
+                ? User.Role.SELLER : User.Role.BUYER;
         
         User user = userService.createUser(
                 registerRequest.getName(),
                 registerRequest.getEmail(),
                 registerRequest.getPassword(),
-                registerRequest.getRole()
+                role
         );
         
-        String jwt = tokenProvider.generateTokenFromUsername(user.getEmail(), user.getId(), user.getRole().name());
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        registerRequest.getEmail(),
+                        registerRequest.getPassword()
+                )
+        );
+        
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String accessToken = tokenProvider.generateToken(authentication);
         String refreshToken = tokenProvider.generateRefreshToken(user);
         
+        // Send welcome email
+        try {
+            Map<String, Object> templateModel = new HashMap<>();
+            templateModel.put("name", user.getName());
+            emailService.sendTemplatedEmail(
+                user.getEmail(), 
+                "Welcome to Our eCommerce Platform", 
+                "welcome-email", 
+                templateModel
+            );
+        } catch (Exception e) {
+            // Log error but continue with registration
+            System.err.println("Failed to send welcome email: " + e.getMessage());
+        }
+        
         return AuthResponse.builder()
-                .token(jwt)
+                .token(accessToken)
                 .refreshToken(refreshToken)
-                .userId(user.getId())
+                .userType(user.getRole().name())
                 .name(user.getName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
+                .userId(user.getId())
                 .build();
     }
     
@@ -94,74 +121,79 @@ public class AuthServiceImpl implements AuthService {
         }
         
         String username = tokenProvider.getUsernameFromToken(refreshToken);
-        User user = userService.findByEmail(username);
+        Long userId = tokenProvider.getUserIdFromToken(refreshToken);
+        User user = userService.findById(userId);
         
-        String accessToken = tokenProvider.generateTokenFromUsername(user.getEmail(), user.getId(), user.getRole().name());
+        String accessToken = tokenProvider.generateTokenFromUsername(
+            username, userId, user.getRole().name()
+        );
         
         return AuthResponse.builder()
                 .token(accessToken)
                 .refreshToken(refreshToken)
-                .userId(user.getId())
+                .userType(user.getRole().name())
                 .name(user.getName())
                 .email(user.getEmail())
-                .role(user.getRole().name())
+                .userId(user.getId())
                 .build();
     }
     
     @Override
     @Transactional
     public void forgotPassword(String email) {
-        User user;
         try {
-            user = userService.findByEmail(email);
-        } catch (ResourceNotFoundException e) {
-            return;
+            User user = userService.findByEmail(email);
+            String token = UUID.randomUUID().toString();
+            userService.createPasswordResetTokenForUser(user, token);
+            
+            // Send reset email with token
+            Map<String, Object> templateModel = new HashMap<>();
+            templateModel.put("name", user.getName());
+            templateModel.put("resetLink", "http://localhost:5173/reset-password?token=" + token);
+            templateModel.put("token", token);
+            
+            emailService.sendTemplatedEmail(
+                user.getEmail(),
+                "Password Reset Request",
+                "reset-password-email",
+                templateModel
+            );
+        } catch (Exception e) {
+            // Don't expose if email exists or not
+            System.err.println("Failed to process forgot password: " + e.getMessage());
         }
-        
-        passwordResetTokenRepository.findByUser(user).ifPresent(token -> 
-            passwordResetTokenRepository.delete(token)
-        );
-        
-        String token = UUID.randomUUID().toString();
-        PasswordResetToken passwordResetToken = new PasswordResetToken();
-        passwordResetToken.setToken(token);
-        passwordResetToken.setUser(user);
-        passwordResetToken.setExpiryDate(LocalDateTime.now().plusHours(2));
-        
-        passwordResetTokenRepository.save(passwordResetToken);
-        
-        String resetUrl = "http://localhost:5173/reset-password?token=" + token;
-        String content = "Hello " + user.getName() + ",\n\n" +
-                "You requested a password reset. Please click on the link below to reset your password:\n\n" +
-                resetUrl + "\n\n" +
-                "If you did not request this, please ignore this email and your password will remain unchanged.\n\n" +
-                "Thank you,\nThe eCommerce Team";
-        
-        emailService.sendEmail(user.getEmail(), "Password Reset Request", content);
     }
     
     @Override
     @Transactional
-    public void resetPassword(ResetPasswordRequest resetPasswordRequest) {
-        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(resetPasswordRequest.getToken())
-                .orElseThrow(() -> new BadRequestException("Invalid or expired token"));
-        
-        if (passwordResetToken.isExpired()) {
-            passwordResetTokenRepository.delete(passwordResetToken);
-            throw new BadRequestException("Token has expired");
+    public void resetPassword(ResetPasswordRequest resetRequest) {
+        if (!userService.validatePasswordResetToken(resetRequest.getToken())) {
+            throw new BadRequestException("Invalid or expired token");
         }
         
-        User user = passwordResetToken.getUser();
-        user.setPassword(passwordEncoder.encode(resetPasswordRequest.getPassword()));
+        User user = userService.getUserByPasswordResetToken(resetRequest.getToken());
+        user.setPassword(passwordEncoder.encode(resetRequest.getPassword()));
         userService.saveUser(user);
         
-        passwordResetTokenRepository.delete(passwordResetToken);
+        // Send confirmation email
+        try {
+            Map<String, Object> templateModel = new HashMap<>();
+            templateModel.put("name", user.getName());
+            
+            emailService.sendTemplatedEmail(
+                user.getEmail(),
+                "Your Password Has Been Reset",
+                "password-reset-confirmation",
+                templateModel
+            );
+        } catch (Exception e) {
+            // Log error but continue with password reset
+            System.err.println("Failed to send password reset confirmation email: " + e.getMessage());
+        }
     }
     
     @Override
     public boolean validatePasswordResetToken(String token) {
-        return passwordResetTokenRepository.findByToken(token)
-                .map(resetToken -> !resetToken.isExpired())
-                .orElse(false);
+        return userService.validatePasswordResetToken(token);
     }
 }

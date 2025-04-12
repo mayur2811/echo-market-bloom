@@ -2,64 +2,90 @@
 package com.ecommerce.service.impl;
 
 import com.ecommerce.service.EmailService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class EmailServiceImpl implements EmailService {
+
+    @Autowired
+    private JavaMailSender mailSender;
     
-    private final JavaMailSender mailSender;
+    @Autowired(required = false)
+    private TemplateEngine templateEngine;
     
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:no-reply@ecommerce.com}")
     private String fromEmail;
-    
-    @Async
+
     @Override
-    public void sendEmail(String to, String subject, String content) {
+    public void sendSimpleEmail(String to, String subject, String body) {
         try {
-            // Try to send HTML email
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(body);
+            
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send email: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendHtmlEmail(String to, String subject, String htmlBody) throws MessagingException {
+        try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
-            
-            // Convert plain text to basic HTML
-            String htmlContent = "<html><body>" +
-                    content.replace("\n", "<br/>") +
-                    "</body></html>";
-            
-            helper.setText(htmlContent, true);
+            helper.setText(htmlBody, true);
             
             mailSender.send(message);
-            log.info("HTML email sent successfully to: {}", to);
         } catch (MessagingException e) {
-            log.warn("Failed to send HTML email, falling back to plain text: {}", e.getMessage());
+            System.err.println("Failed to send HTML email: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    @Override
+    public void sendTemplatedEmail(String to, String subject, String templateName, Map<String, Object> templateModel) throws MessagingException {
+        if (templateEngine != null) {
+            Context context = new Context();
+            context.setVariables(templateModel);
             
-            // Fallback to plain text email
-            try {
-                SimpleMailMessage simpleMessage = new SimpleMailMessage();
-                simpleMessage.setFrom(fromEmail);
-                simpleMessage.setTo(to);
-                simpleMessage.setSubject(subject);
-                simpleMessage.setText(content);
-                
-                mailSender.send(simpleMessage);
-                log.info("Plain text email sent successfully to: {}", to);
-            } catch (Exception ex) {
-                log.error("Failed to send email to: {}", to, ex);
+            String htmlContent = templateEngine.process(templateName, context);
+            sendHtmlEmail(to, subject, htmlContent);
+        } else {
+            // Fallback to simple text content if template engine is not available
+            StringBuilder textContent = new StringBuilder();
+            textContent.append("Dear ").append(templateModel.getOrDefault("name", "Customer")).append(",\n\n");
+            
+            if (templateName.contains("reset-password")) {
+                textContent.append("You requested a password reset. Please use this link to reset your password: ")
+                          .append(templateModel.getOrDefault("resetLink", ""))
+                          .append("\n\nIf you did not request this, please ignore this email.");
+            } else if (templateName.contains("welcome")) {
+                textContent.append("Welcome to our eCommerce platform! Thank you for registering with us.");
+            } else if (templateName.contains("password-reset-confirmation")) {
+                textContent.append("Your password has been successfully reset. If you did not make this change, please contact our support team immediately.");
             }
+            
+            textContent.append("\n\nThank you,\nThe eCommerce Team");
+            
+            sendSimpleEmail(to, subject, textContent.toString());
         }
     }
 }

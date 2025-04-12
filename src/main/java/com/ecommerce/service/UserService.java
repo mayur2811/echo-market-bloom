@@ -12,4 +12,7 @@ public interface UserService {
     UserDto updateProfile(Long userId, UserDto userDto);
     UserDto getCurrentUserProfile();
     User saveUser(User user);
+    void createPasswordResetTokenForUser(User user, String token);
+    boolean validatePasswordResetToken(String token);
+    User getUserByPasswordResetToken(String token);
 }
