@@ -13,6 +13,54 @@ const Profile = () => {
   useEffect(() => {
     if (!currentUser) {
       navigate('/login');
+    } else {
+      // Initialize mock orders data if not already in localStorage
+      const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      if (existingOrders.length === 0) {
+        const mockOrders = [
+          {
+            id: '12345678-123456',
+            userId: currentUser.id || 'guest',
+            date: new Date().toISOString(),
+            status: 'delivered',
+            total: 128.50,
+            items: [{ name: 'Product 1', quantity: 2 }]
+          },
+          {
+            id: '23456789-234567',
+            userId: currentUser.id || 'guest',
+            date: new Date(Date.now() - 86400000).toISOString(),  // yesterday
+            status: 'processing',
+            total: 75.20,
+            items: [{ name: 'Product 2', quantity: 1 }]
+          },
+          {
+            id: '34567890-345678',
+            userId: currentUser.id || 'guest',
+            date: new Date(Date.now() - 172800000).toISOString(),  // 2 days ago
+            status: 'pending',
+            total: 220.00,
+            items: [{ name: 'Product 3', quantity: 3 }]
+          },
+          {
+            id: '45678901-456789',
+            userId: currentUser.id || 'guest',
+            date: new Date(Date.now() - 259200000).toISOString(),  // 3 days ago
+            status: 'delivered',
+            total: 55.99,
+            items: [{ name: 'Product 4', quantity: 1 }]
+          },
+          {
+            id: '56789012-567890',
+            userId: currentUser.id || 'guest',
+            date: new Date(Date.now() - 345600000).toISOString(),  // 4 days ago
+            status: 'delivered',
+            total: 149.99,
+            items: [{ name: 'Product 5', quantity: 1 }]
+          }
+        ];
+        localStorage.setItem('orders', JSON.stringify(mockOrders));
+      }
     }
   }, [currentUser, navigate]);
 

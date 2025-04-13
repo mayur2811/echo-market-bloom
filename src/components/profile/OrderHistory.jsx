@@ -1,13 +1,25 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package } from 'lucide-react';
+import { Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 const OrderHistory = () => {
   const { currentUser } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [ordersPerPage] = useState(3);
 
   useEffect(() => {
     // In a real application, fetch orders from API
@@ -20,6 +32,17 @@ const OrderHistory = () => {
       setLoading(false);
     }, 500);
   }, [currentUser]);
+
+  // Get current orders for pagination
+  const indexOfLastOrder = currentPage * ordersPerPage;
+  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
+  const currentOrders = orders.slice(indexOfFirstOrder, indexOfLastOrder);
+  const totalPages = Math.ceil(orders.length / ordersPerPage);
+
+  // Change page
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
 
   if (loading) {
     return (
@@ -41,24 +64,68 @@ const OrderHistory = () => {
       <h2 className="text-xl font-bold mb-4">Recent Orders</h2>
       
       {orders.length > 0 ? (
-        <div className="divide-y">
-          {orders.map(order => (
-            <div key={order.id} className="py-4">
-              <div className="flex justify-between mb-2">
-                <p className="font-medium">Order #{order.id.substring(0, 8)}</p>
-                <span className={`px-2 py-1 rounded text-xs ${
-                  order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
-                  order.status === 'processing' ? 'bg-blue-100 text-blue-800' : 
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {order.status.toUpperCase()}
-                </span>
+        <>
+          <div className="divide-y">
+            {currentOrders.map(order => (
+              <div key={order.id} className="py-4">
+                <div className="flex justify-between mb-2">
+                  <p className="font-medium">Order #{order.id.substring(0, 8)}</p>
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
+                    order.status === 'processing' ? 'bg-blue-100 text-blue-800' : 
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {order.status.toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-gray-500 text-sm mb-2">Placed on {new Date(order.date).toLocaleDateString()}</p>
+                <p className="font-bold">${order.total.toFixed(2)}</p>
               </div>
-              <p className="text-gray-500 text-sm mb-2">Placed on {new Date(order.date).toLocaleDateString()}</p>
-              <p className="font-bold">${order.total.toFixed(2)}</p>
+            ))}
+          </div>
+          
+          {/* Pagination */}
+          {orders.length > ordersPerPage && (
+            <div className="mt-6">
+              <Pagination>
+                <PaginationContent>
+                  {currentPage > 1 && (
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        href="#"
+                      />
+                    </PaginationItem>
+                  )}
+                  
+                  {[...Array(totalPages).keys()].map(number => (
+                    <PaginationItem key={number + 1}>
+                      <PaginationLink
+                        href="#"
+                        isActive={currentPage === number + 1}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handlePageChange(number + 1);
+                        }}
+                      >
+                        {number + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  {currentPage < totalPages && (
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        href="#"
+                      />
+                    </PaginationItem>
+                  )}
+                </PaginationContent>
+              </Pagination>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-10">
           <Package size={40} className="mx-auto text-gray-400 mb-2" />
