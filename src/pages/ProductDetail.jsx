@@ -61,6 +61,22 @@ const ProductDetail = () => {
     fetchProduct();
   }, [id, getProductById, navigate, products]);
   
+  // Modified cart handler to accept size and color
+  const handleAddToCart = (product, quantity, size, color) => {
+    if (!size || !color) {
+      toast.error('Please select both size and color');
+      return;
+    }
+    
+    addToCart({
+      ...product,
+      selectedSize: size,
+      selectedColor: color
+    }, quantity);
+    
+    toast.success(`Added ${product.name} to cart`);
+  };
+  
   if (!product) {
     return (
       <div className="exclusive-container py-16 text-center">
@@ -86,7 +102,7 @@ const ProductDetail = () => {
         {/* Product Info */}
         <ProductInfo 
           product={product} 
-          addToCart={addToCart}
+          addToCart={handleAddToCart}
         />
       </div>
       
