@@ -17,6 +17,8 @@ import Layout from "./components/layout/Layout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -24,6 +26,9 @@ import Checkout from "./pages/Checkout";
 import Payment from "./pages/Payment";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Wishlist from "./pages/Wishlist";
 
 // Seller Dashboard
 import SellerDashboard from "./pages/seller/Dashboard";
@@ -63,9 +68,14 @@ const App = () => (
                   <Route path="checkout" element={<Checkout />} />
                   <Route path="payment" element={<Payment />} />
                   <Route path="profile" element={<Profile />} />
+                  <Route path="about" element={<About />} />
+                  <Route path="contact" element={<Contact />} />
+                  <Route path="wishlist" element={<Wishlist />} />
                 </Route>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 
                 {/* Seller dashboard routes */}
                 <Route path="/seller/dashboard" element={<SellerDashboard />}>
