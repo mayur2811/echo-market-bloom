@@ -1,32 +1,29 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { User, Package, LogOut, Mail, CreditCard, Settings, BarChart2 } from 'lucide-react';
-import { toast } from 'sonner';
+import ProfileForm from '../components/profile/ProfileForm';
+import OrderHistory from '../components/profile/OrderHistory';
 
 const Profile = () => {
   const { currentUser, logout, isSeller } = useAuth();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
   
   useEffect(() => {
     if (!currentUser) {
       navigate('/login');
-      return;
     }
-    
-    // In a real application, fetch orders from API
-    // For demo, we'll use mock data from localStorage
-    const mockOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    const userOrders = mockOrders.filter(order => order.userId === currentUser.id);
-    setOrders(userOrders);
   }, [currentUser, navigate]);
-  
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
+
+  if (!currentUser) {
+    return null; // Don't render anything if not logged in
+  }
 
   return (
     <div className="exclusive-container py-10">
@@ -95,70 +92,26 @@ const Profile = () => {
         {/* Main content */}
         <div className="md:col-span-2">
           {/* Personal Information */}
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">Personal Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-gray-600 text-sm mb-1">Full Name</label>
-                <p className="font-medium">{currentUser?.name || 'Not set'}</p>
-              </div>
-              <div>
-                <label className="block text-gray-600 text-sm mb-1">Email</label>
-                <p className="font-medium">{currentUser?.email}</p>
-              </div>
-              <div>
-                <label className="block text-gray-600 text-sm mb-1">Account Type</label>
-                <p className="font-medium capitalize">{currentUser?.userType || 'Buyer'}</p>
-              </div>
-            </div>
-          </div>
+          <ProfileForm />
           
           {/* Recent Orders */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4">Recent Orders</h2>
-            
-            {orders.length > 0 ? (
-              <div className="divide-y">
-                {orders.map(order => (
-                  <div key={order.id} className="py-4">
-                    <div className="flex justify-between mb-2">
-                      <p className="font-medium">Order #{order.id.substring(0, 8)}</p>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        order.status === 'delivered' ? 'bg-green-100 text-green-800' : 
-                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' : 
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {order.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-gray-500 text-sm mb-2">Placed on {new Date(order.date).toLocaleDateString()}</p>
-                    <p className="font-bold">${order.total.toFixed(2)}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10">
-                <Package size={40} className="mx-auto text-gray-400 mb-2" />
-                <p className="text-gray-500">You haven't placed any orders yet.</p>
-              </div>
-            )}
-            
-            <div className="mt-6 space-y-4">
-              {isSeller && (
-                <Link
-                  to="/seller/dashboard"
-                  className="exclusive-btn block w-full text-center"
-                >
-                  Go to Seller Dashboard
-                </Link>
-              )}
+          <OrderHistory />
+          
+          <div className="mt-6 space-y-4">
+            {isSeller && (
               <Link
-                to="/products"
-                className={`${isSeller ? 'border border-exclusive-red text-exclusive-red hover:bg-exclusive-red hover:text-white' : 'exclusive-btn'} block w-full text-center`}
+                to="/seller/dashboard"
+                className="exclusive-btn block w-full text-center"
               >
-                Continue Shopping
+                Go to Seller Dashboard
               </Link>
-            </div>
+            )}
+            <Link
+              to="/products"
+              className={`${isSeller ? 'border border-exclusive-red text-exclusive-red hover:bg-exclusive-red hover:text-white' : 'exclusive-btn'} block w-full text-center`}
+            >
+              Continue Shopping
+            </Link>
           </div>
         </div>
       </div>

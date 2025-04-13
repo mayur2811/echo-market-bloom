@@ -31,7 +31,7 @@ import Contact from "./pages/Contact";
 import Wishlist from "./pages/Wishlist";
 
 // Seller Dashboard
-import SellerDashboard from "./pages/seller/Dashboard";
+import Dashboard from "./pages/seller/Dashboard";
 import ProductManagement from "./pages/seller/ProductManagement";
 import ProductForm from "./pages/seller/ProductForm";
 import SellerProfile from "./pages/seller/SellerProfile";
@@ -78,7 +78,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 
                 {/* Seller dashboard routes */}
-                <Route path="/seller/dashboard" element={<SellerDashboard />}>
+                <Route path="/seller/dashboard" element={<Dashboard />}>
                   <Route path="products" element={<ProductManagement />} />
                   <Route path="products/new" element={<ProductForm />} />
                   <Route path="products/edit/:id" element={<ProductForm />} />
